@@ -117,6 +117,33 @@ const fetchBooks = async () => {
     return response.rows;
 };
 
+// Function to fetch details of a specific book
+const fetchBookDetails = async (bookId) => {
+    const SQL = 'SELECT * FROM books WHERE id = $1';
+    const response = await client.query(SQL, [bookId]);
+    return response.rows[0];
+};
+
+// Function to fetch all reviews for a specific item
+const fetchReviewsByBook = async (bookId) => {
+    const SQL = 'SELECT r.*, u.username FROM reviews r JOIN users u ON r.user_id = u.id WHERE book_id = $1';
+    const response = await client.query(SQL, [bookId]);
+    return response.rows;
+};
+
+// Function to create a new review
+const createReview = async ({ userId, itemId, rating, reviewText }) => {
+    const SQL = 'INSERT INTO reviews (id, user_id, book_id, rating, review_text) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+    const response = await client.query(SQL, [uuid.v4(), userId, itemId, rating, reviewText]);
+    return response.rows[0];
+};
+
+// Function to fetch all reviews written by a specific user
+const fetchMyReviews = async (userId) => {
+    const SQL = 'SELECT * FROM reviews WHERE user_id = $1';
+    const response = await client.query(SQL, [userId]);
+    return response.rows;
+};
 
 module.exports = {
   client,
@@ -126,5 +153,9 @@ module.exports = {
   fetchUsers,
   fetchBooks,
   authenticate,
-  findUserWithToken
+  findUserWithToken,
+  fetchBookDetails,
+  fetchReviewsByBook,
+  createReview,
+  fetchMyReviews
 };       

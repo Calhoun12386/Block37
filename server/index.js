@@ -1,5 +1,6 @@
 //server/index.js
-const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate, findUserWithToken } = require('./db');
+const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate, findUserWithToken, fetchBookDetails, 
+    fetchReviewsByBook, createReview, fetchMyReviews } = require('./db');
 
 const express = require("express");
 const app = express();
@@ -68,6 +69,52 @@ app.get('/api/books', async (req, res) => {
     }
 });
 
+// Route to fetch details of a specific book
+app.get('/api/books/:id', async (req, res) => {
+    try {
+        const item = await fetchBookDetails(req.params.id);
+        res.send(item);
+    } catch (ex) {
+        res.status(404).send({ error: 'Item not found' });
+    }
+});
+
+// Route to fetch all reviews for a specific book
+app.get('/api/books/:id/reviews', async (req, res) => {
+    try {
+        const reviews = await fetchReviewsByBook(req.params.id);
+        res.send(reviews);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not fetch reviews' });
+    }
+});
+
+// Route to create a new review for a specific item, only accessible to logged-in users
+app.post('/api/items/:id/reviews', isLoggedIn, async (req, res) => {
+    try {
+        const review = await createReview({
+            userId: req.user.id,
+            itemId: req.params.id,
+            rating: req.body.rating,
+            reviewText: req.body.reviewText
+        });
+        res.status(201).send(review);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not create review' });
+    }
+});
+
+// Route to fetch all reviews written by the logged-in user
+app.get('/api/reviews/me', isLoggedIn, async (req, res) => {
+    try {
+        const reviews = await fetchMyReviews(req.user.id);
+        res.send(reviews);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not fetch reviews' });
+    }
+});
+
+
 // Function to seed the database with dummy data
 const seedDatabase = async () => {
     const users = [
@@ -113,24 +160,45 @@ const init = async () => {
 init();
 
 
-
 /* 
------LOGIN A USER-----
+-----LOGIN A USER-------------------------------------------------
 curl -X POST -H "Content-Type: application/json" \
 -d '{"username": "steven", "password": "stevenpw"}' \
 http://localhost:3000/api/auth/login
------------------------------------------------------------
+------------------------------------------------------------------------
 
------REGISTER NEW USER-----
+-----REGISTER NEW USER---------------------------------------------------
 curl -X POST -H "Content-Type: application/json" \
 -d '{"username": "newUser", "password": "newPassword"}' \
 http://localhost:3000/api/auth/register 
--------------------------------------------------------------
+-------------------------------------------------------------------------------------
 
------LOGGED-IN-DETAILS-----
+-----LOGGED-IN-DETAILS (MUST BE LOGGED IN)------------------------------------------
 curl -H "Authorization: <your_token_here>" http://localhost:3000/api/auth/me
----------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
+-----SINGLE BOOK DETAILS------------------------------------------------------
+curl -X GET http://localhost:3000/api/books/<book_id>
+--------------------------------------------------------------------------------
 
+-----GET REVIEWS OF SINGLE BOOK-----------------------------------------------
+curl -X GET http://localhost:3000/api/books/<BOOK_ID>/reviews
+---------------------------------------------------------------------------
+
+-----CREATE A REVIEW (MUST BE LOGGED IN)------------------------------------------------------
+curl -X POST http://localhost:3000/api/items/{bookId}/reviews \
+-H "Content-Type: application/json" \
+-H "Authorization: {your_token}" \
+-d '{
+  "rating": 5,
+  "reviewText": "Great book! Highly recommend it."
+}'
+--------------------------------------------------------------------------------------
+
+-----GET ALL REVIEWS BY USER-----------------------------------------
+curl -X GET http://localhost:3000/api/reviews/me \
+-H "Authorization: {your_token}" \
+-H "Content-Type: application/json"
+------------------------------------------------------------------------
 
 */
