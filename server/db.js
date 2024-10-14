@@ -132,9 +132,9 @@ const fetchReviewsByBook = async (bookId) => {
 };
 
 // Function to create a new review
-const createReview = async ({ userId, itemId, rating, reviewText }) => {
+const createReview = async ({ userId, bookId, rating, reviewText }) => {
     const SQL = 'INSERT INTO reviews (id, user_id, book_id, rating, review_text) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-    const response = await client.query(SQL, [uuid.v4(), userId, itemId, rating, reviewText]);
+    const response = await client.query(SQL, [uuid.v4(), userId, bookId, rating, reviewText]);
     return response.rows[0];
 };
 
@@ -143,6 +143,19 @@ const fetchMyReviews = async (userId) => {
     const SQL = 'SELECT * FROM reviews WHERE user_id = $1';
     const response = await client.query(SQL, [userId]);
     return response.rows;
+};
+
+// Function to update a specific review
+const updateReview = async ({ reviewId, userId, rating, reviewText }) => {
+    const SQL = 'UPDATE reviews SET rating = $1, review_text = $2 WHERE id = $3 AND user_id = $4 RETURNING *';
+    const response = await client.query(SQL, [rating, reviewText, reviewId, userId]);
+    return response.rows[0];
+};
+
+// Function to delete a specific review
+const deleteReview = async ({ reviewId, userId }) => {
+    const SQL = 'DELETE FROM reviews WHERE id = $1 AND user_id = $2';
+    await client.query(SQL, [reviewId, userId]);
 };
 
 module.exports = {
@@ -157,5 +170,7 @@ module.exports = {
   fetchBookDetails,
   fetchReviewsByBook,
   createReview,
-  fetchMyReviews
+  fetchMyReviews,
+  updateReview,
+  deleteReview
 };       

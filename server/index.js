@@ -1,6 +1,6 @@
 //server/index.js
 const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate, findUserWithToken, fetchBookDetails, 
-    fetchReviewsByBook, createReview, fetchMyReviews } = require('./db');
+    fetchReviewsByBook, createReview, fetchMyReviews, updateReview, deleteReview } = require('./db');
 
 const express = require("express");
 const app = express();
@@ -89,12 +89,12 @@ app.get('/api/books/:id/reviews', async (req, res) => {
     }
 });
 
-// Route to create a new review for a specific item, only accessible to logged-in users
-app.post('/api/items/:id/reviews', isLoggedIn, async (req, res) => {
+// Route to create a new review for a specific book, only accessible to logged-in users
+app.post('/api/books/:id/reviews', isLoggedIn, async (req, res) => {
     try {
         const review = await createReview({
             userId: req.user.id,
-            itemId: req.params.id,
+            bookId: req.params.id,
             rating: req.body.rating,
             reviewText: req.body.reviewText
         });
@@ -113,6 +113,32 @@ app.get('/api/reviews/me', isLoggedIn, async (req, res) => {
         res.status(500).send({ error: 'Could not fetch reviews' });
     }
 });
+
+// Route to update a review, only accessible to the user who wrote the review
+app.put('/api/reviews/:id', isLoggedIn, async (req, res) => {
+    try {
+        const updated = await updateReview({
+            reviewId: req.params.id,
+            userId: req.user.id,
+            rating: req.body.rating,
+            reviewText: req.body.reviewText
+        });
+        res.send(updated);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not update review' });
+    }
+});
+
+// Route to delete a specific review, only accessible to the user who wrote the review
+app.delete('/api/reviews/:id', isLoggedIn, async (req, res) => {
+    try {
+        await deleteReview({ reviewId: req.params.id, userId: req.user.id });
+        res.sendStatus(204);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not delete review' });
+    }
+});
+
 
 
 // Function to seed the database with dummy data
@@ -186,7 +212,7 @@ curl -X GET http://localhost:3000/api/books/<BOOK_ID>/reviews
 ---------------------------------------------------------------------------
 
 -----CREATE A REVIEW (MUST BE LOGGED IN)------------------------------------------------------
-curl -X POST http://localhost:3000/api/items/{bookId}/reviews \
+curl -X POST http://localhost:3000/api/books/{bookId}/reviews \
 -H "Content-Type: application/json" \
 -H "Authorization: {your_token}" \
 -d '{
@@ -200,5 +226,21 @@ curl -X GET http://localhost:3000/api/reviews/me \
 -H "Authorization: {your_token}" \
 -H "Content-Type: application/json"
 ------------------------------------------------------------------------
+
+-----UPDATE REVIEW--------------------------------------------------------
+curl -X PUT http://localhost:3000/api/reviews/{review_id} \
+-H "Authorization: YOUR_JWT_TOKEN" \
+-H "Content-Type: application/json" \
+-d '{
+    "rating": 4,
+    "reviewText": "Updated review text here."
+}'
+-------------------------------------------------------------------------
+
+-----DELETE REVIEW-------------------------------------------------
+curl -X DELETE http://localhost:3000/api/reviews/<REVIEW_ID> \
+-H "Authorization: <YOUR_TOKEN>"
+-------------------------------------------------------------------
+
 
 */
