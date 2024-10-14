@@ -4,7 +4,7 @@ const client = new pg.Client(process.env.DATABASE_URL || 'postgres://localhost/b
 const uuid = require('uuid');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const JWT = 'secretKey'
+const JWT = process.env.JWT || 'key';
 
 // Function to create all necessary tables
 const createTables = async () => {
@@ -68,6 +68,31 @@ const authenticate = async({ username, password })=> {
     return { token };
   };
 
+//Verify token for isloggedin
+const findUserWithToken = async(token)=> {
+    let id;
+    try {
+      const payload = await jwt.verify(token, JWT);  // Verify the token
+      id = payload.id;
+    } catch(ex) {
+      const error = Error('not authorized_find user');
+      error.status = 401;
+      throw error;
+    }
+    
+    const SQL = `
+      SELECT id, username FROM users WHERE id=$1;
+    `;
+    const response = await client.query(SQL, [id]);
+    if(!response.rows.length){
+      const error = Error('not authorized');
+      error.status = 401;
+      throw error;
+    }
+    
+    return response.rows[0];
+  };
+
 // Function to fetch all users
 const fetchUsers = async () => {
     try {
@@ -100,5 +125,6 @@ module.exports = {
   createBook,
   fetchUsers,
   fetchBooks,
-  authenticate
+  authenticate,
+  findUserWithToken
 };       

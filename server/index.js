@@ -1,5 +1,5 @@
 //server/index.js
-const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate } = require('./db');
+const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate, findUserWithToken } = require('./db');
 
 const express = require("express");
 const app = express();
@@ -9,6 +9,16 @@ app.use(express.json());
 app.get('/api/users', async(req, res, next)=> {
     try {
       res.send(await fetchUsers());
+    }
+    catch(ex){
+      next(ex);
+    }
+  });
+
+  //Route to Log-in a user
+  app.post('/api/auth/login', async(req, res, next)=> {
+    try {
+      res.send(await authenticate(req.body));
     }
     catch(ex){
       next(ex);
@@ -27,6 +37,26 @@ app.get('/api/users', async(req, res, next)=> {
       next(ex);
     }
   });
+
+  //Middleware
+  const isLoggedIn = async (req, res, next) => {
+    try {
+      req.user = await findUserWithToken(req.headers.authorization);
+      next();
+    } catch (ex) {
+      next(ex);
+    }
+  };
+
+  
+    // Route to get the logged-in user's details
+app.get('/api/auth/me', isLoggedIn, async (req, res) => {
+    try {
+        res.send(req.user);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not fetch user' });
+    }
+});
 
 // Route to fetch all books
 app.get('/api/books', async (req, res) => {
@@ -85,13 +115,21 @@ init();
 
 
 /* 
-
+-----LOGIN A USER-----
+curl -X POST -H "Content-Type: application/json" \
+-d '{"username": "steven", "password": "stevenpw"}' \
+http://localhost:3000/api/auth/login
+-----------------------------------------------------------
 
 -----REGISTER NEW USER-----
 curl -X POST -H "Content-Type: application/json" \
 -d '{"username": "newUser", "password": "newPassword"}' \
 http://localhost:3000/api/auth/register 
+-------------------------------------------------------------
 
+-----LOGGED-IN-DETAILS-----
+curl -H "Authorization: <your_token_here>" http://localhost:3000/api/auth/me
+---------------------------------------------------------------------------------------------
 
 
 
