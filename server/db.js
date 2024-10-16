@@ -158,6 +158,22 @@ const deleteReview = async ({ reviewId, userId }) => {
     await client.query(SQL, [reviewId, userId]);
 };
 
+// Function to create a new comment
+const createComment = async ({ reviewId, userId, commentText }) => {
+    const SQL = 'INSERT INTO comments (id, review_id, user_id, comment_text) VALUES ($1, $2, $3, $4) RETURNING *';
+    const response = await client.query(SQL, [uuid.v4(), reviewId, userId, commentText]);
+    return response.rows[0];
+};
+
+// Function to fetch comments by review ID
+const fetchCommentsByReview = async (reviewId) => {
+    const SQL = 'SELECT c.id, c.comment_text, u.username FROM comments c JOIN users u ON c.user_id = u.id WHERE c.review_id = $1';
+    const response = await client.query(SQL, [reviewId]);
+    return response.rows;
+};
+//toselect all columns
+//const SQL = 'SELECT c.*, u.username FROM comments c JOIN users u ON c.user_id = u.id WHERE c.review_id = $1';
+
 module.exports = {
   client,
   createTables,
@@ -172,5 +188,7 @@ module.exports = {
   createReview,
   fetchMyReviews,
   updateReview,
-  deleteReview
+  deleteReview,
+  createComment,
+  fetchCommentsByReview
 };       

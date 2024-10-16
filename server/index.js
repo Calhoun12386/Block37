@@ -1,6 +1,6 @@
 //server/index.js
 const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate, findUserWithToken, fetchBookDetails, 
-    fetchReviewsByBook, createReview, fetchMyReviews, updateReview, deleteReview } = require('./db');
+    fetchReviewsByBook, createReview, fetchMyReviews, updateReview, deleteReview, createComment, fetchCommentsByReview } = require('./db');
 
 const express = require("express");
 const app = express();
@@ -139,6 +139,30 @@ app.delete('/api/reviews/:id', isLoggedIn, async (req, res) => {
     }
 });
 
+// Route to create a comment on a specific review, only accessible to logged-in users
+app.post('/api/books/:id/reviews/:reviewId/comments', isLoggedIn, async (req, res) => {
+    try {
+        const comment = await createComment({
+            reviewId: req.params.reviewId,
+            userId: req.user.id,
+            commentText: req.body.commentText
+        });
+        res.status(201).send(comment);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not create comment' });
+    }
+});
+
+// Route to fetch all comments for a specific review
+app.get('/api/reviews/:id/comments', async (req, res) => {
+    try {
+        const comments = await fetchCommentsByReview(req.params.id);
+        res.send(comments);
+    } catch (ex) {
+        console.error('Error fetching comments:', ex);
+        res.status(500).send({ error: 'Could not fetch comments' });
+    }
+});
 
 
 // Function to seed the database with dummy data
@@ -242,5 +266,14 @@ curl -X DELETE http://localhost:3000/api/reviews/<REVIEW_ID> \
 -H "Authorization: <YOUR_TOKEN>"
 -------------------------------------------------------------------
 
+-----COMMENT ON A REVIEW--------------------------------------------
+curl -X POST http://localhost:3000/api/books/<BOOK_ID>/reviews/<REVIEW_ID>/comments \
+-H "Authorization: <YOUR_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{"commentText": "This comment is very helpful!"}'
+---------------------------------------------------------------------
 
+-----GET ALL COMMENTS BY REVIEW--------------------------------------
+curl -X GET http://localhost:3000/api/reviews/<REVIEW_ID>/comments
+----------------------------------------------------------------------
 */
