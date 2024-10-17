@@ -174,6 +174,26 @@ const fetchCommentsByReview = async (reviewId) => {
 //toselect all columns
 //const SQL = 'SELECT c.*, u.username FROM comments c JOIN users u ON c.user_id = u.id WHERE c.review_id = $1';
 
+// Function to fetch all comments written by a specific user
+const fetchMyComments = async (userId) => {
+    const SQL = 'SELECT * FROM comments WHERE user_id = $1';
+    const response = await client.query(SQL, [userId]);
+    return response.rows;
+};
+
+// Function to update a specific comment
+const updateComment = async ({ commentId, userId, commentText }) => {
+    const SQL = 'UPDATE comments SET comment_text = $1 WHERE id = $2 AND user_id = $3 RETURNING *';
+    const response = await client.query(SQL, [commentText, commentId, userId]);
+    return response.rows[0];
+};
+
+// Function to delete a specific comment
+const deleteComment = async ({ commentId, userId }) => {
+    const SQL = 'DELETE FROM comments WHERE id = $1 AND user_id = $2';
+    await client.query(SQL, [commentId, userId]);
+};
+
 module.exports = {
   client,
   createTables,
@@ -190,5 +210,8 @@ module.exports = {
   updateReview,
   deleteReview,
   createComment,
-  fetchCommentsByReview
+  fetchCommentsByReview,
+  fetchMyComments,
+  updateComment,
+  deleteComment
 };       

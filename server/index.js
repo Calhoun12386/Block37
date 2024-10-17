@@ -1,6 +1,7 @@
 //server/index.js
 const { client, createTables,createUser, fetchUsers, createBook, fetchBooks, authenticate, findUserWithToken, fetchBookDetails, 
-    fetchReviewsByBook, createReview, fetchMyReviews, updateReview, deleteReview, createComment, fetchCommentsByReview } = require('./db');
+    fetchReviewsByBook, createReview, fetchMyReviews, updateReview, deleteReview, createComment, fetchCommentsByReview,
+    fetchMyComments, updateComment, deleteComment } = require('./db');
 
 const express = require("express");
 const app = express();
@@ -164,6 +165,40 @@ app.get('/api/reviews/:id/comments', async (req, res) => {
     }
 });
 
+// Route to fetch all comments written by the logged-in user
+app.get('/api/comments/me', isLoggedIn, async (req, res) => {
+    try {
+        const comments = await fetchMyComments(req.user.id);
+        res.send(comments);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not fetch comments' });
+    }
+});
+
+// Route to update a specific comment, only accessible to the user who wrote the comment
+app.put('/api/comments/:id', isLoggedIn, async (req, res) => {
+    try {
+        const updated = await updateComment({
+            commentId: req.params.id,
+            userId: req.user.id,
+            commentText: req.body.commentText
+        });
+        res.send(updated);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not update comment' });
+    }
+});
+
+// Route to delete a specific comment, only accessible to the user who wrote the comment
+app.delete('/api/comments/:id', isLoggedIn, async (req, res) => {
+    try {
+        await deleteComment({ commentId: req.params.id, userId: req.user.id });
+        res.sendStatus(204);
+    } catch (ex) {
+        res.status(500).send({ error: 'Could not delete comment' });
+    }
+});
+
 
 // Function to seed the database with dummy data
 const seedDatabase = async () => {
@@ -276,4 +311,24 @@ curl -X POST http://localhost:3000/api/books/<BOOK_ID>/reviews/<REVIEW_ID>/comme
 -----GET ALL COMMENTS BY REVIEW--------------------------------------
 curl -X GET http://localhost:3000/api/reviews/<REVIEW_ID>/comments
 ----------------------------------------------------------------------
+
+-----GET ALL COMMENTS BY USER------------------------------
+curl -X GET http://localhost:3000/api/comments/me \
+-H "Authorization: <YOUR_TOKEN>" \
+-H "Content-Type: application/json"
+--------------------------------------------------------
+
+-----UPDATE COMMENT-----------------------------------------
+curl -X PUT http://localhost:3000/api/comments/<COMMENT_ID> \
+-H "Authorization: <YOUR_JWT_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{"commentText": "Updated comment text"}'
+-------------------------------------------------------------
+
+-----DELETE A COMMENT---------------------------------------
+curl -X DELETE http://localhost:3000/api/comments/<COMMENT_ID> \
+-H "Authorization: <YOUR_JWT_TOKEN>" \
+-H "Content-Type: application/json"
+------------------------------------------------------------
+
 */
